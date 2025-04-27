@@ -127,6 +127,47 @@
                 "Incident report filed"
             ],
             "followUpRequired": true
+        },
+        {
+            "id": "inc_003",
+            "residentId": "res_001",
+            "type": "Behavioral",
+            "timestamp": "2025-04-05T10:00:00Z",
+            "location": "Common Area",
+            "description": "Resident became agitated during morning activity, shouting. Redirected back to room, calmed down after 15 mins.",
+            "witnessedBy": "staff_101",
+            "actionsTaken": [
+                "Redirection techniques used",
+                "PRN medication considered but not needed",
+                "Notified family during evening call"
+            ],
+            "followUpRequired": false
+        },
+        {
+            "id": "inc_004",
+            "residentId": "res_002",
+            "type": "Fall",
+            "timestamp": "2025-04-15T20:00:00Z",
+            "location": "Hallway near Room 102B",
+            "description": "Resident lost balance while walking back from restroom. Assisted to ground by staff_102. Minor abrasion on left elbow. Vitals stable.",
+            "witnessedBy": "staff_102",
+            "actionsTaken": [
+                "Vitals checked",
+                "Wound care provided",
+                "Incident report filed"
+            ],
+            "followUpRequired": true
+        },
+        {
+            "id": "inc_005",
+            "residentId": "res_003",
+            "type": "Skin Tear",
+            "timestamp": "2025-04-25T11:30:00Z",
+            "location": "Resident Room 205A",
+            "description": "Small skin tear noted on right forearm during dressing change. Cleaned and dressed per protocol.",
+            "witnessedBy": "staff_103",
+            "actionsTaken": ["Wound care provided", "Documented in chart"],
+            "followUpRequired": false
         }
     ],
     "medications": [
@@ -197,6 +238,114 @@
         }
     ],
     "activities": [
+        {
+            "id": "act_101",
+            "residentId": "res_001",
+            "type": "Bathroom Visit",
+            "timestamp": "2025-04-05T07:30:00Z",
+            "staffId": "staff_103",
+            "outcome": "Assisted",
+            "notes": "Morning routine."
+        },
+        {
+            "id": "act_102",
+            "residentId": "res_001",
+            "type": "Medication Administered",
+            "timestamp": "2025-04-05T08:00:00Z",
+            "staffId": "staff_101",
+            "outcome": "Taken",
+            "notes": "Lisinopril 10mg."
+        },
+        {
+            "id": "act_103",
+            "residentId": "res_002",
+            "type": "Bathroom Visit",
+            "timestamp": "2025-04-05T07:45:00Z",
+            "staffId": "staff_103",
+            "outcome": "Independent",
+            "notes": "Morning routine."
+        },
+        {
+            "id": "act_104",
+            "residentId": "res_002",
+            "type": "Medication Administered",
+            "timestamp": "2025-04-05T08:10:00Z",
+            "staffId": "staff_101",
+            "outcome": "Taken",
+            "notes": "Metformin 500mg."
+        },
+        {
+            "id": "act_105",
+            "residentId": "res_003",
+            "type": "Bathroom Visit",
+            "timestamp": "2025-04-05T08:00:00Z",
+            "staffId": "staff_103",
+            "outcome": "Assisted",
+            "notes": "Morning routine."
+        },
+        {
+            "id": "act_201",
+            "residentId": "res_001",
+            "type": "Meal",
+            "timestamp": "2025-04-15T12:00:00Z",
+            "staffId": "staff_103",
+            "outcome": "Completed",
+            "notes": "Ate 100% of lunch."
+        },
+        {
+            "id": "act_202",
+            "residentId": "res_002",
+            "type": "Medication Administered",
+            "timestamp": "2025-04-15T18:00:00Z",
+            "staffId": "staff_102",
+            "outcome": "Taken",
+            "notes": "Metformin 500mg (evening dose)."
+        },
+        {
+            "id": "act_203",
+            "residentId": "res_002",
+            "type": "Medication Administered",
+            "timestamp": "2025-04-15T20:30:00Z",
+            "staffId": "staff_102",
+            "outcome": "Taken",
+            "notes": "Insulin Glargine 10 units. BG 180 pre-admin."
+        },
+        {
+            "id": "act_204",
+            "residentId": "res_003",
+            "type": "Shower",
+            "timestamp": "2025-04-15T09:30:00Z",
+            "staffId": "staff_103",
+            "outcome": "Assisted",
+            "notes": "Shower completed with assistance. O2 sats stable."
+        },
+        {
+            "id": "act_301",
+            "residentId": "res_001",
+            "type": "Medication Administered",
+            "timestamp": "2025-04-25T10:00:00Z",
+            "staffId": "staff_101",
+            "outcome": "Taken",
+            "notes": "Acetaminophen 500mg PRN for reported knee pain (4/10)."
+        },
+        {
+            "id": "act_302",
+            "residentId": "res_001",
+            "type": "Physical Therapy",
+            "timestamp": "2025-04-25T14:00:00Z",
+            "staffId": null,
+            "outcome": "Participated",
+            "notes": "Attended scheduled PT session."
+        },
+        {
+            "id": "act_303",
+            "residentId": "res_003",
+            "type": "Medication Administered",
+            "timestamp": "2025-04-25T09:00:00Z",
+            "staffId": "staff_101",
+            "outcome": "Taken",
+            "notes": "Albuterol Inhaler 2 puffs PRN requested by resident for mild SOB. Effective."
+        },
         {
             "id": "act_001",
             "residentId": "res_001",

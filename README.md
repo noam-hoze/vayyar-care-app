@@ -51,3 +51,27 @@ This React Native application serves as an on-site assistant for nurses working 
     -   For Web (if configured): `npm run web`
 
 2.  Follow the prompts in the terminal to open the app on your chosen platform.
+
+## Example Queries
+
+Here are some examples of questions a nurse can ask the Vayyar Care assistant:
+
+**Falls & Fall Risk:**
+
+1.  "Did Eleanor Vance fall in the last 7 days?"
+2.  "Show me all fall incidents for Arthur Pendelton this month."
+3.  "What is the fall risk level for resident res_001?"
+4.  "Summarize the fall incident inc_004."
+5.  "Which residents have a high fall risk?"
+
+**Bathroom Visits & Activities:**
+
+6.  "How many times did Eleanor Vance visit the bathroom today?"
+7.  "List Beatrice Miller's activities from April 15th."
+8.  "Was resident res_002 assisted during bathroom visits on April 5th?"
+
+**General & Combined:**
+
+9.  "Give me a summary of the last day shift."
+10. "What medications does Arthur Pendelton take?"
+11. "Any notable incidents or activities for Eleanor Vance today?"

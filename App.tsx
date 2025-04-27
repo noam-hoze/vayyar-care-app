@@ -14,11 +14,30 @@ import {
 } from "react-native";
 import { OPENAI_API_KEY } from "@env";
 import OpenAI from "openai";
+import mockDb from "./mock_db.json"; // Import the mock database
 
 const openai = new OpenAI({
     apiKey: OPENAI_API_KEY,
     dangerouslyAllowBrowser: true,
 });
+
+// System prompt describing the AI's role and data context
+const SYSTEM_PROMPT_BASE = `You are Vayyar Care, a specialized AI assistant for nurses in a senior living facility. Maintain a positive, professional, and pleasant tone.
+Your primary goal is to provide clear and concise information based on the provided data context and conversation history.
+
+You have access to information about residents, staff, rooms, incidents (like falls), medications, shifts, and activities.
+Key resident fields: id, name, dob, roomNumber, conditions, allergies, fallRisk, notes.
+Key incident fields: id, residentId, type, timestamp, location, description, witnessedBy.
+Key activity fields: id, residentId, type, timestamp, staffId, outcome.
+
+Keep your answers brief and to the point. Avoid unnecessary elaboration.`;
+
+// Combine base prompt with the actual database content (FOR TEMPORARY USE - INEFFICIENT)
+const FULL_SYSTEM_PROMPT = `${SYSTEM_PROMPT_BASE}\n\nHere is the current facility data:\n\`\`\`json\n${JSON.stringify(
+    mockDb,
+    null,
+    2
+)}\n\`\`\``;
 
 interface Message {
     id: string;
@@ -52,15 +71,22 @@ export default function App() {
         console.log("Attempting API call...");
 
         try {
-            const apiMessages = updatedMessages.map((msg) => ({
-                role: msg.sender,
-                content: msg.text,
-            }));
+            // Format messages including the FULL system prompt with data
+            const apiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] =
+                [
+                    { role: "system", content: FULL_SYSTEM_PROMPT }, // Use combined prompt (Corrected variable name)
+                    ...updatedMessages.map((msg) => ({
+                        role: msg.sender, // 'user' or 'assistant'
+                        content: msg.text,
+                    })),
+                ];
+            // Limit logging in production, but helpful for debug
+            // console.log("Formatted messages for API (including system prompt):", JSON.stringify(apiMessages));
             console.log(
-                "Formatted messages for API:",
-                JSON.stringify(apiMessages)
+                `Sending ${apiMessages.length} messages including full DB in system prompt.`
             );
 
+            // Call the OpenAI API
             const completion = await openai.chat.completions.create({
                 messages: apiMessages,
                 model: "gpt-3.5-turbo",
