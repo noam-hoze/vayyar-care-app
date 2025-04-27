@@ -15,6 +15,11 @@ import {
 import { OPENAI_API_KEY } from "@env";
 import OpenAI from "openai";
 import mockDb from "./mock_db.json"; // Import the mock database
+import TimelineGraph from "./src/components/TimelineGraph"; // Import graph component
+import {
+    getWeeklyFallsForResident,
+    getWeeklyBathroomVisitsForResident,
+} from "./src/utils/dataProcessor"; // Import data processing functions
 
 const openai = new OpenAI({
     apiKey: OPENAI_API_KEY,
@@ -30,7 +35,9 @@ Key resident fields: id, name, dob, roomNumber, conditions, allergies, fallRisk,
 Key incident fields: id, residentId, type, timestamp, location, description, witnessedBy.
 Key activity fields: id, residentId, type, timestamp, staffId, outcome.
 
-Keep your answers brief and to the point. Avoid unnecessary elaboration.`;
+Keep your answers brief and to the point. Avoid unnecessary elaboration.
+
+**IMPORTANT:** If the user asks for a graph/chart/weekly summary and the following messages provide aggregated weekly data, acknowledge that the graph is being displayed visually in the app. Then, provide a brief textual summary based *only* on the aggregated weekly data provided in the prompt. Do not mention your inability to graph directly in this case. Focus on summarizing the trends shown in the data (e.g., 'Okay, I'm showing the graph now. We see one fall occurred in the week of Apr 21-27.').`;
 
 // Combine base prompt with the actual database content (FOR TEMPORARY USE - INEFFICIENT)
 const FULL_SYSTEM_PROMPT = `${SYSTEM_PROMPT_BASE}\n\nHere is the current facility data:\n\`\`\`json\n${JSON.stringify(
@@ -45,18 +52,41 @@ interface Message {
     sender: "user" | "assistant";
 }
 
+// Define type for chart data state
+interface ChartState {
+    data: { weekLabel: string; count: number }[];
+    title: string;
+    dataTypeLabel: string;
+}
+
 export default function App() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [showChart, setShowChart] = useState(false); // State for chart visibility
+    const [chartState, setChartState] = useState<ChartState | null>(null); // State for chart data/config
+
+    // --- Helper: Basic keyword detection for resident ID ---
+    // (Very basic - needs improvement for real use)
+    const extractResidentId = (text: string): string | null => {
+        const lowerText = text.toLowerCase();
+        const residentMatch = lowerText.match(/res_[0-9]+/);
+        if (residentMatch) return residentMatch[0];
+
+        if (lowerText.includes("eleanor vance")) return "res_001";
+        if (lowerText.includes("arthur pendelton")) return "res_002";
+        if (lowerText.includes("beatrice miller")) return "res_003";
+
+        return null; // Or prompt user for ID
+    };
 
     const handleSend = async () => {
-        if (inputText.trim().length === 0 || isLoading) {
-            return;
-        }
+        if (inputText.trim().length === 0 || isLoading) return;
 
         const userMessageText = inputText.trim();
         setInputText("");
+        setShowChart(false); // Hide chart by default on new message
+        setChartState(null);
 
         const newUserMessage: Message = {
             id: Date.now().toString(),
@@ -67,26 +97,91 @@ export default function App() {
         const updatedMessages = [...messages, newUserMessage];
         setMessages(updatedMessages);
 
+        // --- Chart Trigger Logic ---
+        let shouldGenerateChart = false;
+        const lowerText = userMessageText.toLowerCase();
+        let residentId: string | null = null;
+        let chartData: { weekLabel: string; count: number }[] | null = null;
+        let newChartState: ChartState | null = null;
+
+        // Prepare API messages based on whether a chart is shown
+        let apiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[]; // Declare outside
+
+        if (
+            lowerText.includes("graph") ||
+            lowerText.includes("chart") ||
+            lowerText.includes("weekly") ||
+            lowerText.includes("monthly")
+        ) {
+            residentId = extractResidentId(lowerText);
+
+            if (residentId) {
+                if (lowerText.includes("falls")) {
+                    chartData = getWeeklyFallsForResident(residentId, 30); // Default to last 30 days
+                    newChartState = {
+                        data: chartData,
+                        title: `Weekly Falls - Last 30 Days (${residentId})`,
+                        dataTypeLabel: "Falls",
+                    };
+                    shouldGenerateChart = true;
+                } else if (
+                    lowerText.includes("bathroom") ||
+                    lowerText.includes("visits")
+                ) {
+                    chartData = getWeeklyBathroomVisitsForResident(
+                        residentId,
+                        30
+                    );
+                    newChartState = {
+                        data: chartData,
+                        title: `Weekly Bathroom Visits - Last 30 Days (${residentId})`,
+                        dataTypeLabel: "Visits",
+                    };
+                    shouldGenerateChart = true;
+                }
+            }
+            // Add more conditions for other chart types if needed
+        }
+
+        if (shouldGenerateChart && newChartState) {
+            console.log("Graph requested. Processed data:", newChartState.data);
+            setChartState(newChartState);
+            setShowChart(true);
+
+            // ** Send tailored prompt for graph **
+            apiMessages = [
+                { role: "system", content: SYSTEM_PROMPT_BASE },
+                { role: "user", content: userMessageText },
+                {
+                    role: "assistant",
+                    content: `Okay, displaying a graph of ${
+                        newChartState.dataTypeLabel
+                    } for ${residentId}. Here is the weekly summary data:\n${JSON.stringify(
+                        newChartState.data
+                    )}`,
+                },
+            ];
+            console.log("Sending tailored prompt for graph summary.");
+        } else {
+            // ** Send standard prompt with full DB **
+            apiMessages = [
+                { role: "system", content: FULL_SYSTEM_PROMPT },
+                ...updatedMessages.map((msg) => ({
+                    role: msg.sender,
+                    content: msg.text,
+                })),
+            ];
+            console.log(
+                `Sending ${apiMessages.length} messages including full DB in system prompt.`
+            );
+        }
+        // --- End Chart Trigger Logic / API Message Prep ---
+
         setIsLoading(true);
         console.log("Attempting API call...");
 
         try {
-            // Format messages including the FULL system prompt with data
-            const apiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] =
-                [
-                    { role: "system", content: FULL_SYSTEM_PROMPT }, // Use combined prompt (Corrected variable name)
-                    ...updatedMessages.map((msg) => ({
-                        role: msg.sender, // 'user' or 'assistant'
-                        content: msg.text,
-                    })),
-                ];
-            // Limit logging in production, but helpful for debug
-            // console.log("Formatted messages for API (including system prompt):", JSON.stringify(apiMessages));
-            console.log(
-                `Sending ${apiMessages.length} messages including full DB in system prompt.`
-            );
-
-            // Call the OpenAI API
+            // Call the OpenAI API (apiMessages is now in scope)
             const completion = await openai.chat.completions.create({
                 messages: apiMessages,
                 model: "gpt-3.5-turbo",
@@ -163,6 +258,18 @@ export default function App() {
                         ) : null
                     }
                 />
+
+                {/* Conditionally render the graph */}
+                {showChart && chartState && (
+                    <View style={styles.graphContainer}>
+                        <TimelineGraph
+                            title={chartState.title}
+                            data={chartState.data}
+                            dataTypeLabel={chartState.dataTypeLabel}
+                        />
+                    </View>
+                )}
+
                 {isLoading && (
                     <View style={styles.loadingContainer}>
                         <ActivityIndicator size="small" color="#007bff" />
@@ -265,5 +372,8 @@ const styles = StyleSheet.create({
     loadingText: {
         marginLeft: 5,
         color: "#999",
+    },
+    graphContainer: {
+        paddingHorizontal: 10,
     },
 });
