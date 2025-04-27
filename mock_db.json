@@ -1,0 +1,237 @@
+{
+    "residents": [
+        {
+            "id": "res_001",
+            "name": "Eleanor Vance",
+            "dob": "1940-05-15",
+            "roomNumber": "101A",
+            "admissionDate": "2022-01-20",
+            "conditions": [
+                "Hypertension",
+                "Arthritis",
+                "Mild Cognitive Impairment"
+            ],
+            "allergies": ["Penicillin"],
+            "fallRisk": "High",
+            "emergencyContact": {
+                "name": "John Vance",
+                "relationship": "Son",
+                "phone": "555-123-4567"
+            },
+            "notes": "Requires assistance with bathing and dressing. Enjoys reading."
+        },
+        {
+            "id": "res_002",
+            "name": "Arthur Pendelton",
+            "dob": "1935-11-02",
+            "roomNumber": "102B",
+            "admissionDate": "2023-03-10",
+            "conditions": ["Diabetes Type 2", "Macular Degeneration"],
+            "allergies": [],
+            "fallRisk": "Medium",
+            "emergencyContact": {
+                "name": "Sarah Jenkins",
+                "relationship": "Daughter",
+                "phone": "555-987-6543"
+            },
+            "notes": "Independent with most ADLs, needs help with insulin administration. Vision impaired."
+        },
+        {
+            "id": "res_003",
+            "name": "Beatrice Miller",
+            "dob": "1948-08-25",
+            "roomNumber": "205A",
+            "admissionDate": "2021-11-15",
+            "conditions": ["COPD", "Osteoporosis"],
+            "allergies": ["Shellfish"],
+            "fallRisk": "Medium",
+            "emergencyContact": {
+                "name": "Robert Miller",
+                "relationship": "Husband",
+                "phone": "555-111-2222"
+            },
+            "notes": "Uses supplemental oxygen. Participates in group activities."
+        }
+    ],
+    "staff": [
+        {
+            "id": "staff_101",
+            "name": "Nurse Jane Doe",
+            "role": "RN",
+            "shift": "Day",
+            "phone": "555-010-1111"
+        },
+        {
+            "id": "staff_102",
+            "name": "Nurse John Smith",
+            "role": "LPN",
+            "shift": "Night",
+            "phone": "555-010-2222"
+        },
+        {
+            "id": "staff_103",
+            "name": "Care Aide Maria Garcia",
+            "role": "CNA",
+            "shift": "Day",
+            "phone": "555-010-3333"
+        }
+    ],
+    "rooms": [
+        {
+            "number": "101A",
+            "residentId": "res_001",
+            "type": "Single",
+            "features": ["Private Bath", "Window View"]
+        },
+        {
+            "number": "102B",
+            "residentId": "res_002",
+            "type": "Single",
+            "features": ["Shared Bath", "Near Nurse Station"]
+        },
+        {
+            "number": "205A",
+            "residentId": "res_003",
+            "type": "Single",
+            "features": ["Private Bath"]
+        }
+    ],
+    "incidents": [
+        {
+            "id": "inc_001",
+            "residentId": "res_001",
+            "type": "Fall",
+            "timestamp": "2025-04-26T14:30:00Z",
+            "location": "Resident Room 101A",
+            "description": "Resident slipped while transferring from bed to wheelchair. No apparent injuries, vital signs stable. Assisted back to bed.",
+            "witnessedBy": "staff_103",
+            "actionsTaken": [
+                "Vitals checked",
+                "Neuro check performed",
+                "Family notified",
+                "Incident report filed"
+            ],
+            "followUpRequired": true
+        },
+        {
+            "id": "inc_002",
+            "residentId": "res_002",
+            "type": "Medication Error",
+            "timestamp": "2025-04-27T08:15:00Z",
+            "location": "Dining Hall",
+            "description": "Incorrect dosage of morning insulin administered (5 units instead of 10 units). Physician notified immediately. Blood sugar monitored closely.",
+            "witnessedBy": "staff_101",
+            "actionsTaken": [
+                "Physician notified",
+                "Blood sugar monitoring increased",
+                "Incident report filed"
+            ],
+            "followUpRequired": true
+        }
+    ],
+    "medications": [
+        {
+            "id": "med_001",
+            "residentId": "res_001",
+            "name": "Lisinopril",
+            "dosage": "10mg",
+            "frequency": "Once Daily (Morning)",
+            "route": "Oral",
+            "purpose": "Hypertension"
+        },
+        {
+            "id": "med_002",
+            "residentId": "res_001",
+            "name": "Acetaminophen",
+            "dosage": "500mg",
+            "frequency": "PRN (Pain)",
+            "route": "Oral",
+            "purpose": "Arthritis Pain"
+        },
+        {
+            "id": "med_003",
+            "residentId": "res_002",
+            "name": "Metformin",
+            "dosage": "500mg",
+            "frequency": "Twice Daily (With Meals)",
+            "route": "Oral",
+            "purpose": "Diabetes Type 2"
+        },
+        {
+            "id": "med_004",
+            "residentId": "res_002",
+            "name": "Insulin Glargine",
+            "dosage": "10 units",
+            "frequency": "Once Daily (Evening)",
+            "route": "Subcutaneous",
+            "purpose": "Diabetes Type 2"
+        },
+        {
+            "id": "med_005",
+            "residentId": "res_003",
+            "name": "Albuterol Inhaler",
+            "dosage": "2 puffs",
+            "frequency": "PRN (Shortness of Breath)",
+            "route": "Inhalation",
+            "purpose": "COPD"
+        }
+    ],
+    "shifts": [
+        {
+            "id": "shift_001",
+            "date": "2025-04-27",
+            "type": "Day",
+            "staffOnDuty": ["staff_101", "staff_103"],
+            "startTime": "2025-04-27T07:00:00Z",
+            "endTime": "2025-04-27T19:00:00Z",
+            "handoverNotes": "Shift started uneventfully. Resident Miller requires close monitoring for O2 sats. Resident Pendelton needs glucose check before lunch. Incident inc_002 occurred early shift, details filed."
+        },
+        {
+            "id": "shift_002",
+            "date": "2025-04-27",
+            "type": "Night",
+            "staffOnDuty": ["staff_102"],
+            "startTime": "2025-04-27T19:00:00Z",
+            "endTime": "2025-04-28T07:00:00Z",
+            "handoverNotes": "Quiet night. All residents stable. Routine checks completed. Ensure Res Vance gets assistance ambulating to breakfast."
+        }
+    ],
+    "activities": [
+        {
+            "id": "act_001",
+            "residentId": "res_001",
+            "type": "Bathroom Visit",
+            "timestamp": "2025-04-27T09:00:00Z",
+            "staffId": "staff_103",
+            "outcome": "Assisted",
+            "notes": "Routine morning voiding. No issues."
+        },
+        {
+            "id": "act_002",
+            "residentId": "res_002",
+            "type": "Meal",
+            "timestamp": "2025-04-27T12:30:00Z",
+            "staffId": "staff_101",
+            "outcome": "Completed",
+            "notes": "Ate 75% of lunch. Blood sugar checked prior as requested."
+        },
+        {
+            "id": "act_003",
+            "residentId": "res_003",
+            "type": "Activity Group",
+            "timestamp": "2025-04-27T15:00:00Z",
+            "staffId": null,
+            "outcome": "Participated",
+            "notes": "Joined the afternoon music session."
+        },
+        {
+            "id": "act_004",
+            "residentId": "res_001",
+            "type": "Bathroom Visit",
+            "timestamp": "2025-04-27T16:00:00Z",
+            "staffId": "staff_103",
+            "outcome": "Assisted",
+            "notes": "Routine afternoon voiding."
+        }
+    ]
+}
