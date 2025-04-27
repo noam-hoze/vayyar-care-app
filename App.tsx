@@ -19,7 +19,11 @@ import TimelineGraph from "./src/components/TimelineGraph"; // Import graph comp
 import {
     getWeeklyFallsForResident,
     getWeeklyBathroomVisitsForResident,
+    getShiftSummaryData, // Import shift summary function
+    ShiftSummaryData, // Import type for state
 } from "./src/utils/dataProcessor"; // Import data processing functions
+import ShiftSummary from "./src/components/ShiftSummary"; // Import ShiftSummary
+import moment from "moment"; // Import moment
 
 const openai = new OpenAI({
     apiKey: OPENAI_API_KEY,
@@ -65,6 +69,12 @@ export default function App() {
     const [isLoading, setIsLoading] = useState(false);
     const [showChart, setShowChart] = useState(false); // State for chart visibility
     const [chartState, setChartState] = useState<ChartState | null>(null); // State for chart data/config
+    const [showShiftSummary, setShowShiftSummary] = useState(false); // State for summary visibility
+    const [shiftSummaryData, setShiftSummaryData] =
+        useState<ShiftSummaryData | null>(null); // State for summary data
+
+    // Format current date
+    const currentDateFormatted = moment().format("MMMM D, YYYY");
 
     // --- Helper: Basic keyword detection for resident ID ---
     // (Very basic - needs improvement for real use)
@@ -84,9 +94,13 @@ export default function App() {
         if (inputText.trim().length === 0 || isLoading) return;
 
         const userMessageText = inputText.trim();
+        const lowerText = userMessageText.toLowerCase();
         setInputText("");
-        setShowChart(false); // Hide chart by default on new message
+        // Reset UI elements on new message
+        setShowChart(false);
         setChartState(null);
+        setShowShiftSummary(false);
+        setShiftSummaryData(null);
 
         const newUserMessage: Message = {
             id: Date.now().toString(),
@@ -97,17 +111,49 @@ export default function App() {
         const updatedMessages = [...messages, newUserMessage];
         setMessages(updatedMessages);
 
-        // --- Chart Trigger Logic ---
+        // --- Component Trigger Logic ---
         let shouldGenerateChart = false;
-        const lowerText = userMessageText.toLowerCase();
+        let shouldGenerateSummary = false;
         let residentId: string | null = null;
-        let chartData: { weekLabel: string; count: number }[] | null = null;
         let newChartState: ChartState | null = null;
+        let newSummaryData: ShiftSummaryData | null = null;
+        let apiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[];
 
-        // Prepare API messages based on whether a chart is shown
-        let apiMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[]; // Declare outside
-
+        // Check for Shift Summary Request FIRST
         if (
+            lowerText.includes("shift summary") ||
+            lowerText.includes("handover")
+        ) {
+            shouldGenerateSummary = true;
+            // Simple logic: Assume Day shift wants previous Night summary, Night wants previous Day
+            const currentHour = moment().hour();
+            const targetShiftType: "Day" | "Night" =
+                currentHour >= 7 && currentHour < 19 ? "Day" : "Night"; // Determine current shift
+            newSummaryData = getShiftSummaryData(targetShiftType, moment());
+            console.log(
+                "Shift summary requested. Processed data:",
+                newSummaryData
+            );
+
+            // ** Prepare tailored prompt for summary **
+            apiMessages = [
+                { role: "system", content: SYSTEM_PROMPT_BASE },
+                { role: "user", content: userMessageText },
+                {
+                    // Add context about the summary being shown
+                    role: "assistant",
+                    content: `Okay, generating the shift summary. Key points:\n- Previous Handover: ${
+                        newSummaryData.previousShiftNotes ? "Provided" : "None"
+                    }\n- Recent Incidents: ${
+                        newSummaryData.recentIncidents.length
+                    }\n- Residents to Watch: ${
+                        newSummaryData.residentsToWatch.length
+                    }`,
+                },
+            ];
+            console.log("Sending tailored prompt for shift summary.");
+        } // Check for Chart Request SECOND (else if)
+        else if (
             lowerText.includes("graph") ||
             lowerText.includes("chart") ||
             lowerText.includes("weekly") ||
@@ -117,7 +163,7 @@ export default function App() {
 
             if (residentId) {
                 if (lowerText.includes("falls")) {
-                    chartData = getWeeklyFallsForResident(residentId, 30); // Default to last 30 days
+                    const chartData = getWeeklyFallsForResident(residentId, 30); // Default to last 30 days
                     newChartState = {
                         data: chartData,
                         title: `Weekly Falls - Last 30 Days (${residentId})`,
@@ -128,7 +174,7 @@ export default function App() {
                     lowerText.includes("bathroom") ||
                     lowerText.includes("visits")
                 ) {
-                    chartData = getWeeklyBathroomVisitsForResident(
+                    const chartData = getWeeklyBathroomVisitsForResident(
                         residentId,
                         30
                     );
@@ -143,16 +189,20 @@ export default function App() {
             // Add more conditions for other chart types if needed
         }
 
+        if (shouldGenerateSummary && newSummaryData) {
+            setShiftSummaryData(newSummaryData);
+            setShowShiftSummary(true);
+        }
         if (shouldGenerateChart && newChartState) {
-            console.log("Graph requested. Processed data:", newChartState.data);
             setChartState(newChartState);
             setShowChart(true);
 
-            // ** Send tailored prompt for graph **
+            // ** Prepare tailored prompt for graph **
             apiMessages = [
                 { role: "system", content: SYSTEM_PROMPT_BASE },
                 { role: "user", content: userMessageText },
                 {
+                    // Add context about the graph being shown and the summary data
                     role: "assistant",
                     content: `Okay, displaying a graph of ${
                         newChartState.dataTypeLabel
@@ -175,7 +225,7 @@ export default function App() {
                 `Sending ${apiMessages.length} messages including full DB in system prompt.`
             );
         }
-        // --- End Chart Trigger Logic / API Message Prep ---
+        // --- End Component Trigger Logic ---
 
         setIsLoading(true);
         console.log("Attempting API call...");
@@ -233,6 +283,13 @@ export default function App() {
                 style={styles.keyboardAvoidingView}
                 keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
             >
+                {/* Header with current date */}
+                <View style={styles.headerContainer}>
+                    <Text style={styles.headerDateText}>
+                        {currentDateFormatted}
+                    </Text>
+                </View>
+
                 <FlatList
                     data={messages}
                     renderItem={({ item }) => (
@@ -259,7 +316,14 @@ export default function App() {
                     }
                 />
 
-                {/* Conditionally render the graph */}
+                {/* Conditionally render Summary */}
+                {showShiftSummary && (
+                    <View style={styles.summaryContainer}>
+                        <ShiftSummary data={shiftSummaryData} />
+                    </View>
+                )}
+
+                {/* Conditionally render Graph */}
                 {showChart && chartState && (
                     <View style={styles.graphContainer}>
                         <TimelineGraph
@@ -309,6 +373,19 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#f5f5f5",
+    },
+    headerContainer: {
+        paddingVertical: 8,
+        paddingHorizontal: 15,
+        backgroundColor: "#e9ecef", // Light grey header background
+        borderBottomWidth: 1,
+        borderBottomColor: "#dee2e6",
+        alignItems: "center",
+    },
+    headerDateText: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: "#495057",
     },
     keyboardAvoidingView: {
         flex: 1,
@@ -375,5 +452,8 @@ const styles = StyleSheet.create({
     },
     graphContainer: {
         paddingHorizontal: 10,
+    },
+    summaryContainer: {
+        // paddingHorizontal: 10, // Example
     },
 });

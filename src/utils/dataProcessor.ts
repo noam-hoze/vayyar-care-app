@@ -25,6 +25,47 @@ interface WeeklyAggregation {
     endDate: string; // ISO format date string
 }
 
+// Added interfaces for Shift Summary
+interface Shift {
+    id: string;
+    date: string; // YYYY-MM-DD
+    type: "Day" | "Night";
+    staffOnDuty: string[];
+    startTime: string; // ISO 8601 format
+    endTime: string; // ISO 8601 format
+    handoverNotes: string | null;
+}
+
+interface Resident {
+    id: string;
+    name: string;
+    fallRisk: string;
+    notes?: string;
+    [key: string]: any;
+}
+
+// Matches structure expected by ShiftSummary component
+export interface IncidentSummary {
+    id: string;
+    residentId: string;
+    residentName?: string;
+    type: string;
+    timestamp: string;
+    description: string;
+}
+
+export interface ResidentToWatch {
+    id: string;
+    name: string;
+    reason: string;
+}
+
+export interface ShiftSummaryData {
+    previousShiftNotes: string | null;
+    recentIncidents: IncidentSummary[];
+    residentsToWatch: ResidentToWatch[];
+}
+
 // --- Helper Functions ---
 
 /**
@@ -44,6 +85,11 @@ const getWeekLabels = (
         current.add(1, "week");
     }
     return labels;
+};
+
+// Helper to get resident name (can be optimized)
+const getResidentNameById = (residentId: string): string | undefined => {
+    return mockDb.residents.find((r) => r.id === residentId)?.name;
 };
 
 // --- Core Processing Functions ---
@@ -136,6 +182,94 @@ export const aggregateDataByWeek = (
     return Object.values(weeklyCounts).sort((a, b) =>
         moment(a.startDate).diff(moment(b.startDate))
     );
+};
+
+/**
+ * Gathers data for a shift summary based on the end of the previous shift.
+ * @param targetShiftType The shift type the summary is FOR (e.g., 'Day' means summarize previous 'Night').
+ * @param referenceDate The current date/time to base the summary on.
+ * @param lookbackHours How many hours back from the reference date to check for recent incidents.
+ */
+export const getShiftSummaryData = (
+    targetShiftType: "Day" | "Night",
+    referenceDate: moment.Moment,
+    lookbackHours: number = 12 // Default to last 12 hours for incidents
+): ShiftSummaryData => {
+    const previousShiftType = targetShiftType === "Day" ? "Night" : "Day";
+    const summaryStartTime = referenceDate
+        .clone()
+        .subtract(lookbackHours, "hours");
+
+    // Find the most recent completed shift of the previous type
+    const previousShift = mockDb.shifts
+        .filter(
+            (shift) =>
+                shift.type === previousShiftType &&
+                moment(shift.endTime).isBefore(referenceDate)
+        )
+        .sort((a, b) => moment(b.endTime).diff(moment(a.endTime)))[0]; // Get the latest one
+
+    const previousShiftNotes = previousShift?.handoverNotes || null;
+
+    // Find recent incidents within the lookback window
+    const recentIncidentsRaw = mockDb.incidents.filter((incident) =>
+        moment(incident.timestamp).isBetween(
+            summaryStartTime,
+            referenceDate,
+            undefined,
+            "[]"
+        )
+    );
+
+    // Format incidents
+    const recentIncidents: IncidentSummary[] = recentIncidentsRaw
+        .map((inc) => ({
+            id: inc.id,
+            residentId: inc.residentId,
+            residentName: getResidentNameById(inc.residentId),
+            type: inc.type,
+            timestamp: inc.timestamp,
+            description: inc.description,
+        }))
+        .sort((a, b) => moment(b.timestamp).diff(moment(a.timestamp))); // Sort newest first
+
+    // Find residents to watch (High Fall Risk or had a recent incident)
+    const residentsToWatchSet = new Set<string>();
+    const residentsToWatch: ResidentToWatch[] = [];
+
+    // Add based on high fall risk
+    mockDb.residents.forEach((res) => {
+        if (res.fallRisk === "High" && !residentsToWatchSet.has(res.id)) {
+            residentsToWatch.push({
+                id: res.id,
+                name: res.name,
+                reason: "High Fall Risk",
+            });
+            residentsToWatchSet.add(res.id);
+        }
+    });
+
+    // Add based on recent incidents
+    recentIncidentsRaw.forEach((inc) => {
+        if (!residentsToWatchSet.has(inc.residentId)) {
+            const residentName =
+                getResidentNameById(inc.residentId) || inc.residentId;
+            residentsToWatch.push({
+                id: inc.residentId,
+                name: residentName,
+                reason: `Recent Incident (${inc.type})`,
+            });
+            residentsToWatchSet.add(inc.residentId);
+        }
+    });
+
+    return {
+        previousShiftNotes,
+        recentIncidents,
+        residentsToWatch: residentsToWatch.sort((a, b) =>
+            a.name.localeCompare(b.name)
+        ), // Sort by name
+    };
 };
 
 // --- Example Usage (for testing/integration) ---
