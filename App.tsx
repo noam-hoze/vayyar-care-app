@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StatusBar } from "expo-status-bar";
+import { StatusBar as ExpoStatusBar } from "expo-status-bar";
 import {
     StyleSheet,
     Text,
@@ -11,6 +11,9 @@ import {
     KeyboardAvoidingView,
     Platform,
     ActivityIndicator,
+    Image,
+    StatusBar as RNStatusBar,
+    TouchableOpacity,
 } from "react-native";
 import { OPENAI_API_KEY } from "@env";
 import OpenAI from "openai";
@@ -24,6 +27,10 @@ import {
 } from "./src/utils/dataProcessor"; // Import data processing functions
 import ShiftSummary from "./src/components/ShiftSummary"; // Import ShiftSummary
 import moment from "moment"; // Import moment
+import { Ionicons } from "@expo/vector-icons"; // Import Ionicons
+
+// Color Constant
+const VAYYAR_BLUE = "#06aeef";
 
 const openai = new OpenAI({
     apiKey: OPENAI_API_KEY,
@@ -278,65 +285,75 @@ export default function App() {
 
     return (
         <SafeAreaView style={styles.container}>
+            {/* Header Section */}
+            <View style={styles.header}>
+                {/* Vayyar Logo */}
+                <Image
+                    source={require("./assets/vayyar-logo.png")} // Use local logo asset
+                    style={styles.logo}
+                />
+                {/* Use local nurse avatar */}
+                <Image
+                    source={require("./assets/nurse.jpg")} // Use local asset
+                    style={styles.avatar}
+                />
+            </View>
+
+            {/* Main Content Area - FlatList takes remaining space */}
+            <FlatList
+                data={messages}
+                renderItem={({ item }) => (
+                    <View
+                        style={[
+                            styles.messageBubble,
+                            item.sender === "user"
+                                ? styles.userMessage
+                                : styles.assistantMessage,
+                        ]}
+                    >
+                        <Text style={styles.messageText}>{item.text}</Text>
+                    </View>
+                )}
+                keyExtractor={(item) => item.id}
+                style={styles.messageList} // Ensure FlatList has flex: 1
+                contentContainerStyle={styles.messageListContent}
+                ListEmptyComponent={
+                    !isLoading ? (
+                        <Text style={styles.emptyText}>No messages yet.</Text>
+                    ) : null
+                }
+            />
+
+            {/* Separator Line - Moved above KAV */}
+            <View style={styles.separator} />
+
+            {/* Conditionally render Summary - Moved outside KAV */}
+            {showShiftSummary && (
+                <View style={styles.summaryContainer}>
+                    <ShiftSummary data={shiftSummaryData} />
+                </View>
+            )}
+
+            {/* Conditionally render Graph - Moved outside KAV */}
+            {showChart && chartState && (
+                <View style={styles.graphContainer}>
+                    <TimelineGraph
+                        title={chartState.title}
+                        data={chartState.data}
+                        dataTypeLabel={chartState.dataTypeLabel}
+                    />
+                </View>
+            )}
+
+            {/* Keyboard Avoiding View wrapping only the input area */}
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={styles.keyboardAvoidingView}
-                keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+                style={styles.keyboardAvoidingViewWrapper} // Use a dedicated style for the wrapper
+                keyboardVerticalOffset={0} // Often 0 when just wrapping input
             >
-                {/* Header with current date */}
-                <View style={styles.headerContainer}>
-                    <Text style={styles.headerDateText}>
-                        {currentDateFormatted}
-                    </Text>
-                </View>
-
-                <FlatList
-                    data={messages}
-                    renderItem={({ item }) => (
-                        <View
-                            style={[
-                                styles.messageBubble,
-                                item.sender === "user"
-                                    ? styles.userMessage
-                                    : styles.assistantMessage,
-                            ]}
-                        >
-                            <Text style={styles.messageText}>{item.text}</Text>
-                        </View>
-                    )}
-                    keyExtractor={(item) => item.id}
-                    style={styles.messageList}
-                    contentContainerStyle={styles.messageListContent}
-                    ListEmptyComponent={
-                        !isLoading ? (
-                            <Text style={styles.emptyText}>
-                                No messages yet.
-                            </Text>
-                        ) : null
-                    }
-                />
-
-                {/* Conditionally render Summary */}
-                {showShiftSummary && (
-                    <View style={styles.summaryContainer}>
-                        <ShiftSummary data={shiftSummaryData} />
-                    </View>
-                )}
-
-                {/* Conditionally render Graph */}
-                {showChart && chartState && (
-                    <View style={styles.graphContainer}>
-                        <TimelineGraph
-                            title={chartState.title}
-                            data={chartState.data}
-                            dataTypeLabel={chartState.dataTypeLabel}
-                        />
-                    </View>
-                )}
-
                 {isLoading && (
                     <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="small" color="#007bff" />
+                        <ActivityIndicator size="small" color={VAYYAR_BLUE} />
                         <Text style={styles.loadingText}>Thinking...</Text>
                     </View>
                 )}
@@ -345,26 +362,33 @@ export default function App() {
                         style={styles.input}
                         value={inputText}
                         onChangeText={setInputText}
-                        placeholder="Type your message..."
+                        placeholder="Ask Vayyar something..."
                         placeholderTextColor="#999"
                         editable={!isLoading}
                     />
+                    {/* Loading Indicator or Send Button */}
                     {isLoading ? (
                         <ActivityIndicator
                             size="small"
-                            color="#007bff"
-                            style={styles.sendButtonLoading}
+                            color={VAYYAR_BLUE}
+                            style={styles.sendButtonContainer}
                         />
                     ) : (
-                        <Button
-                            title="Send"
+                        <TouchableOpacity
+                            style={styles.sendButtonContainer}
                             onPress={handleSend}
                             disabled={isLoading}
-                        />
+                        >
+                            <Image
+                                source={require("./assets/vayyar-logo-white.png")}
+                                style={styles.sendButtonIcon}
+                            />
+                        </TouchableOpacity>
                     )}
                 </View>
             </KeyboardAvoidingView>
-            <StatusBar style="auto" />
+            {/* Use ExpoStatusBar for general style */}
+            <ExpoStatusBar style="auto" />
         </SafeAreaView>
     );
 }
@@ -372,46 +396,59 @@ export default function App() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f5f5f5",
+        backgroundColor: "#f7f9fc", // Light background for the whole app
     },
-    headerContainer: {
-        paddingVertical: 8,
-        paddingHorizontal: 15,
-        backgroundColor: "#e9ecef", // Light grey header background
-        borderBottomWidth: 1,
-        borderBottomColor: "#dee2e6",
+    header: {
+        flexDirection: "row",
+        justifyContent: "space-between",
         alignItems: "center",
+        paddingHorizontal: 15,
+        paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight : 10,
+        paddingBottom: 10,
+        backgroundColor: "#ffffff", // White background for header
+        borderBottomWidth: 1,
+        borderBottomColor: "#e0e0e0", // Subtle border
     },
-    headerDateText: {
-        fontSize: 14,
-        fontWeight: "600",
-        color: "#495057",
+    logo: {
+        width: 100, // Adjust width as needed
+        height: 25, // Adjust height as needed
+        resizeMode: "contain", // Ensure logo scales correctly
     },
-    keyboardAvoidingView: {
-        flex: 1,
+    dateText: {
+        fontSize: 16,
+        color: "#555",
+    },
+    avatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20, // Make it circular
+    },
+    keyboardAvoidingViewWrapper: {
+        width: "100%",
+        // No flex: 1 needed here
     },
     messageList: {
-        flex: 1,
+        flex: 1, // Make FlatList take available space
         paddingHorizontal: 10,
     },
     messageListContent: {
         paddingBottom: 10,
+        paddingTop: 15, // Add top padding
     },
     inputContainer: {
         flexDirection: "row",
-        padding: 10,
+        padding: 15,
         borderTopWidth: 1,
-        borderTopColor: "#e0e0e0",
-        backgroundColor: "#fff",
-        alignItems: "center",
+        borderTopColor: "#e0e0e0", // Match header border
+        backgroundColor: "#ffffff", // White background for input area
     },
     input: {
         flex: 1,
-        height: 40,
         borderWidth: 1,
-        borderColor: "#ccc",
-        borderRadius: 20,
+        borderColor: "#dcdcdc",
+        borderRadius: 20, // Rounded corners
         paddingHorizontal: 15,
+        paddingVertical: 10,
         marginRight: 10,
         backgroundColor: "#fff",
     },
@@ -437,8 +474,14 @@ const styles = StyleSheet.create({
         marginTop: 20,
         color: "#999",
     },
-    sendButtonLoading: {
-        marginHorizontal: 10,
+    sendButtonContainer: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: VAYYAR_BLUE,
+        justifyContent: "center",
+        alignItems: "center",
+        marginLeft: 10,
     },
     loadingContainer: {
         flexDirection: "row",
@@ -455,5 +498,19 @@ const styles = StyleSheet.create({
     },
     summaryContainer: {
         // paddingHorizontal: 10, // Example
+    },
+    separator: {
+        height: 1,
+        backgroundColor: "#e0e0e0",
+        marginHorizontal: 0, // Make it full width if needed, or adjust
+    },
+    loadingIndicator: {
+        marginLeft: 10,
+        alignSelf: "center",
+    },
+    sendButtonIcon: {
+        width: 24,
+        height: 24,
+        resizeMode: "contain",
     },
 });
